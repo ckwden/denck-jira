@@ -1,0 +1,16 @@
+[project]
+name = "fastmcp-atlassian-server"
+version = "0.1.0"
+description = "FastMCP server exposing Atlassian and OpenAI tools"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp",
+    "uvicorn",
+    "atlassian-python-api",
+    "openai",
+]
+
+[tool.setuptools.packages.find]
+where = ["app"]
+

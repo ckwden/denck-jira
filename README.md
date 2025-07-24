@@ -7,7 +7,7 @@ This repository contains a simple [FastMCP](https://github.com/jlowin/fastmcp) s
 - List Jira boards
 - Create Confluence pages
 - Query OpenAI models
-- Search Confluence content with the `search` tool
+- Search Confluence content with the `search` tool using a query string
 - Fetch full pages with the `fetch` tool
 
 ## Setup

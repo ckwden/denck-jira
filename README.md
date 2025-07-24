@@ -1,14 +1,17 @@
 # FastMCP Server
 
-This repository contains a simple [FastMCP](https://github.com/jlowin/fastmcp) server that integrates with Atlassian Jira and Confluence and can also make requests to OpenAI models.
+This repository contains a collection of small [FastMCP](https://github.com/jlowin/fastmcp) servers that integrate with Atlassian Jira and Confluence. Each set of tools is exposed from its own MCP server.
 
 ## Features
-- Create Jira issues
-- List Jira boards
-- Create Confluence pages
-- Query OpenAI models
-- Search Confluence content with the `search` tool using a query string
-- Fetch full pages with the `fetch` tool
+- Jira MCP server
+  - Create Jira issues
+  - List Jira boards
+  - Search Jira issues with the `search` tool
+  - Fetch issues with the `fetch` tool
+- Confluence MCP server
+  - Create Confluence pages
+  - Search Confluence pages with the `search` tool using a query string
+  - Fetch full pages with the `fetch` tool
 
 ## Setup
 1. Install dependencies using [uv](https://github.com/astral-sh/uv):
@@ -19,11 +22,15 @@ This repository contains a simple [FastMCP](https://github.com/jlowin/fastmcp) s
    - `ATLASSIAN_URL`
    - `ATLASSIAN_USERNAME`
    - `ATLASSIAN_API_TOKEN`
-3. (Optional) Set `OPENAI_API_KEY` for OpenAI integration.
 
 ## Running
+Run one of the servers depending on the tools you need:
 ```bash
-python -m app.main
+# Confluence tools
+python -m app.confluence.main
+
+# Jira tools
+python -m app.jira.main
 ```
 
-The server will start using the FastMCP SSE transport, which is required for OpenAI Agent Mode.
+Both servers use the FastMCP SSE transport, which is required for OpenAI Agent Mode if OpenAI tools are added.

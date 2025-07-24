@@ -1,7 +1,10 @@
 from fastmcp.server import FastMCP
 from atlassian import Jira, Confluence
+from bs4 import BeautifulSoup
 import openai
 import os
+
+from .model import SearchResult, Document
 
 mcp = FastMCP(name="FastMCP Atlassian Server")
 
@@ -53,6 +56,47 @@ def ask_openai(prompt: str, model: str = "gpt-4") -> dict:
         messages=[{"role": "user", "content": prompt}]
     )
     return completion
+
+@mcp.tool(title="Search", description="Search Confluence pages")
+def search(query: str, limit: int = 5) -> list:
+    """Search Confluence pages using CQL."""
+    if conf is None:
+        raise RuntimeError("Confluence not configured")
+    response = conf.cql(
+        f'text ~ "{query}"',
+        limit=limit,
+        excerpt="highlight",
+    )
+    results: list[dict] = []
+    for item in response.get("results", []):
+        content = item.get("content", {})
+        snippet_html = item.get("excerpt", "")
+        snippet_text = BeautifulSoup(snippet_html, "html.parser").get_text()
+        sr = SearchResult(
+            id=str(content.get("id")),
+            title=content.get("title", ""),
+            text=snippet_text,
+            url=f"{ATLASSIAN_URL}/wiki{content.get('_links', {}).get('web', '')}",
+        )
+        results.append(sr.asdict())
+    return results
+
+@mcp.tool(title="Fetch", description="Fetch a Confluence page by id")
+def fetch(page_id: str) -> dict:
+    """Fetch a Confluence page by id."""
+    if conf is None:
+        raise RuntimeError("Confluence not configured")
+    page = conf.get_page_by_id(page_id, expand="body.storage,metadata.labels")
+    body_html = page.get("body", {}).get("storage", {}).get("value", "")
+    text = BeautifulSoup(body_html, "html.parser").get_text()
+    doc = Document(
+        id=str(page_id),
+        title=page.get("title", ""),
+        text=text,
+        url=f"{ATLASSIAN_URL}/wiki{page.get('_links', {}).get('web', '')}",
+        metadata={"space": page.get("space", {}).get("key")},
+    )
+    return doc.asdict()
 
 # alias for CLI discovery
 app = mcp

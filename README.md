@@ -7,6 +7,8 @@ This repository contains a simple [FastMCP](https://github.com/jlowin/fastmcp) s
 - List Jira boards
 - Create Confluence pages
 - Query OpenAI models
+- Search Confluence content with the `search` tool
+- Fetch full pages with the `fetch` tool
 
 ## Setup
 1. Install dependencies using [uv](https://github.com/astral-sh/uv):
@@ -24,4 +26,4 @@ This repository contains a simple [FastMCP](https://github.com/jlowin/fastmcp) s
 python -m app.main
 ```
 
-The server will start using the default FastMCP HTTP transport.
+The server will start using the FastMCP SSE transport, which is required for OpenAI Agent Mode.

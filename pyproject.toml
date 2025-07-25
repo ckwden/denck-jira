@@ -8,6 +8,7 @@ dependencies = [
     "fastmcp",
     "uvicorn",
     "atlassian-python-api",
+    "requests",
 ]
 
 [tool.setuptools.packages.find]

@@ -1,7 +1,8 @@
 from fastmcp.server import FastMCP
-from atlassian import Confluence
 from bs4 import BeautifulSoup
 import os
+import requests
+from requests.auth import HTTPBasicAuth
 
 from ..common.model import SearchResult, Document
 
@@ -11,31 +12,42 @@ ATLASSIAN_URL = os.environ.get("ATLASSIAN_URL")
 ATLASSIAN_USERNAME = os.environ.get("ATLASSIAN_USERNAME")
 ATLASSIAN_API_TOKEN = os.environ.get("ATLASSIAN_API_TOKEN")
 
-conf = None
+session = None
 if ATLASSIAN_URL and ATLASSIAN_USERNAME and ATLASSIAN_API_TOKEN:
-    conf = Confluence(
-        url=ATLASSIAN_URL,
-        username=ATLASSIAN_USERNAME,
-        password=ATLASSIAN_API_TOKEN,
-    )
+    session = requests.Session()
+    session.auth = HTTPBasicAuth(ATLASSIAN_USERNAME, ATLASSIAN_API_TOKEN)
+    session.headers.update({"Accept": "application/json"})
 
 
 @mcp.tool
 def create_confluence_page(space: str, title: str, body: str) -> dict:
     """Create a Confluence page"""
-    if conf is None:
+    if session is None:
         raise RuntimeError("Confluence not configured")
-    return conf.create_page(space=space, title=title, body=body)
+    url = f"{ATLASSIAN_URL}/wiki/rest/api/content"
+    payload = {
+        "type": "page",
+        "title": title,
+        "space": {"key": space},
+        "body": {"storage": {"value": body, "representation": "storage"}},
+    }
+    resp = session.post(url, json=payload)
+    resp.raise_for_status()
+    return resp.json()
 
 
 @mcp.tool(title="Search", description="Search Confluence pages")
 def search(query: str, limit: int = 5) -> list:
     """Search Confluence pages using a query string."""
-    if conf is None:
+    if session is None:
         raise RuntimeError("Confluence not configured")
-    response = conf.search(str(query), limit=limit, excerpt="highlight")
+    url = f"{ATLASSIAN_URL}/wiki/rest/api/search"
+    params = {"cql": query, "limit": limit, "excerpt": "highlight"}
+    resp = session.get(url, params=params)
+    resp.raise_for_status()
+    data = resp.json()
     results: list[dict] = []
-    for item in response.get("results", []):
+    for item in data.get("results", []):
         content = item.get("content", {})
         snippet_html = item.get("excerpt", "")
         snippet_text = BeautifulSoup(snippet_html, "html.parser").get_text()
@@ -52,9 +64,13 @@ def search(query: str, limit: int = 5) -> list:
 @mcp.tool(title="Fetch", description="Fetch a Confluence page by id")
 def fetch(page_id: str) -> dict:
     """Fetch a Confluence page by id."""
-    if conf is None:
+    if session is None:
         raise RuntimeError("Confluence not configured")
-    page = conf.get_page_by_id(page_id, expand="body.storage,metadata.labels")
+    url = f"{ATLASSIAN_URL}/wiki/rest/api/content/{page_id}"
+    params = {"expand": "body.storage,metadata.labels,space"}
+    resp = session.get(url, params=params)
+    resp.raise_for_status()
+    page = resp.json()
     body_html = page.get("body", {}).get("storage", {}).get("value", "")
     text = BeautifulSoup(body_html, "html.parser").get_text()
     doc = Document(
